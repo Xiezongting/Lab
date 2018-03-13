@@ -6,20 +6,19 @@ Created on Wed Jan 24 15:43:45 2018
 """
 #导入tkinter包进行可视化
 from tkinter import *
-from CART import *
 
 #画结点，此处需要坐标以及文本信息
-def drawNode(x,y,text):
+def drawNode(x,y,text,canvas):
     canvas.create_rectangle(x-rec_hfwidth,y-rec_hfheight,x+rec_hfwidth,y+rec_hfheight)
     canvas.create_text(x,y,text=text)
 
 #画叶子，此处需要坐标及文本信息    
-def drawLeaf(x,y,text):
+def drawLeaf(x,y,text,canvas):
     canvas.create_oval(x-oval_hfwidth,y-oval_hfheight,x+oval_hfwidth,y+oval_hfheight)
     canvas.create_text(x,y,text=text)
 
 #画线，此处需要坐标已经文本信息
-def drawLine(x,y,text,xgap):
+def drawLine(x,y,text,xgap,canvas):
     canvas.create_line(x,y+rec_hfheight,x-xgap,y+ygap+rec_hfheight)
     canvas.create_text(x-xgap/2,y+ygap/2+rec_hfheight,text=text)
     canvas.create_line(x,y+rec_hfheight,x+xgap,y+ygap+rec_hfheight)
@@ -28,12 +27,16 @@ def drawLine(x,y,text,xgap):
  
 #从写的CART.py中生成决策树，可以得到存储所有结点的list以及深度depth
 #data = getData("data1.csv")
+'''
+西瓜数据集
 from pandas import read_csv
 data = read_csv("xigua.csv",sep=" +",encoding="gbk",engine="python")
 data.drop("ID",inplace =True,axis=1)
+data = getData("data1.csv")
 root = Node(data)
 res=toList(root)
 depth =res[-1].depth
+'''
 
 '''
 请在此处设置参数：
@@ -46,39 +49,45 @@ rec_hfwidth=oval_hfwidth = 30
 rec_hfheight=oval_hfheight=20
 ygap =50
 xgap= 40
+
+def init(tree):    
+    depth = tree[-1].depth
+    #初始化tkinter画布
+    tk = Tk()
+    tk.title("决策树可视化")
+    width = (2**depth)*xgap
+    height = (depth-1)*(2*rec_hfheight+ygap) + ygap
+    canvas = Canvas(tk,width=2**depth*xgap,height=500)
+    canvas.pack()
+    return width,height,depth,canvas
+
+def draw(tree):
+    width, height, depth,canvas = init(tree)
+    res = tree.copy()
+    root = res[0]
+    #将结果集每一个结点都画
+    while len(res)!= 0:
+        node = res[0]
+        #根节点的x为宽度的一般，y随意
+        if node == root:
+            node.x = width/2
+            node.y =30
+        #左结点为父节点的x- △xgap，该值自底向上加倍
+        elif node == node.parent.left:
+            node.x = node.parent.x - 2**(depth-node.depth)*xgap
+            node.y = node.parent.y + 2*rec_hfheight+ygap
+        #右结点同理
+        else:
+            node.x = node.parent.x + 2**(depth-node.depth)*xgap
+            node.y = node.parent.y + 2*rec_hfheight+ygap
+        #如果是结点，就画Node，否则画Leaf
+        if node.type =="NODE":
+            drawNode(node.x,node.y,node.attr,canvas)
+            drawLine(node.x,node.y,",".join(node.value),2**(depth-1-node.depth)*xgap,canvas)
+        else:
+            drawLeaf(node.x,node.y,node.label,canvas)
+        res.pop(0)
     
-#初始化tkinter画布
-tk = Tk()
-tk.title("决策树可视化")
-width = (2**depth)*xgap
-height = (depth-1)*(2*rec_hfheight+ygap) + ygap
-canvas = Canvas(tk,width=2**depth*xgap,height=500)
-canvas.pack()
-
-
-#将结果集每一个结点都画
-while len(res)!= 0:
-    node = res[0]
-    #根节点的x为宽度的一般，y随意
-    if node == root:
-        node.x = width/2
-        node.y =30
-    #左结点为父节点的x- △xgap，该值自底向上加倍
-    elif node == node.parent.left:
-        node.x = node.parent.x - 2**(depth-node.depth)*xgap
-        node.y = node.parent.y + 2*rec_hfheight+ygap
-    #右结点同理
-    else:
-        node.x = node.parent.x + 2**(depth-node.depth)*xgap
-        node.y = node.parent.y + 2*rec_hfheight+ygap
-    #如果是结点，就画Node，否则画Leaf
-    if node.type =="NODE":
-        drawNode(node.x,node.y,node.attr)
-        drawLine(node.x,node.y,",".join(node.value),2**(depth-1-node.depth)*xgap)
-    else:
-        drawLeaf(node.x,node.y,node.label)
-    res.pop(0)
-
-canvas.mainloop()
-
+    canvas.mainloop()
+    return 
 

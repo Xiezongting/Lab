@@ -184,8 +184,73 @@ def predict(root,toPredict):
     return node.label    
             
 
-data = getData("data1.csv")
-root = Node(data)
-res=toList(root)
-depth =res[-1].depth
-m =predict(root,root.data.iloc[20])
+#CCP剪枝部分
+
+def countChild(Node):
+    res =[Node]
+    count = 0
+    while len(res) != 0:
+        temp = res.pop()
+        if temp.left.type !="LEAF":
+            res.append(temp.left)
+        else:
+            count += 1
+        if temp.right.type !="LEAF":
+            res.append(temp.right)
+        else:
+            count +=1
+    return count
+
+#叶结点当做全对吗？
+def calAlpha(Node):
+    #合并后的错误
+    labels = Node.data.iloc[:,-1]
+    num = len(labels)
+    error = num -labels.value_counts()[0]
+    return  error/(countChild(Node)-1)
+
+def delChild(tree, Node):
+    child = [Node]
+    result = tree.copy()
+    while len(child)!= 0:
+        node = child.pop(0)
+        print(node.attr)
+        if node.left in result:
+            if node.left.type == "LEAF":
+                result.remove(node.left)
+            else:
+                child.append(node.left)
+                result.remove(node.left)
+        if node.right in result:
+            if node.right.type == "LEAF" :
+                result.remove(node.right)
+            else:
+                child.append(node.right)
+                result.remove(node.right)
+    Node.type ="LEAF"
+    Node.label = Node.data.iloc[:,-1].value_counts().index[0]
+    return result
+
+def chooseAlpha(tree):
+    minalpha, minNode = 100,None
+    alpha = 100
+    for node in tree:
+        if node.type == "NODE":
+            alpha = calAlpha(node)
+            print(alpha)
+            if alpha < minalpha:
+                minalpha = alpha
+                minNode = node
+    print(minNode)
+    return minalpha, delChild(tree, minNode)
+
+def CCP(tree):
+    best ={}
+    
+    while len(tree)!= 1:
+        bestalpha,besttree =chooseAlpha(tree)
+        #可以增加正确率
+        best[bestalpha] = besttree
+        tree= besttree
+    return best
+
